@@ -10,9 +10,10 @@ var { Strategy } = require('passport-openidconnect');
 const axios = require('axios');
 
 //UL requiremnts
-var {MemoryStore} = require('express-session')
-const store = new MemoryStore();
+const universalLogoutRoute = require('./universalLogout')
+const store = require('.sessionStore')
 var OktaJwtVerifier = require('@okta/jwt-verifier');
+const codespaceName = process.env.CODESPACE_NAME;
 
 // source and import environment variables
 require('dotenv').config({ path: '.okta.env' })
@@ -42,6 +43,96 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+//// Universal Logout Signed Jwt Validation middleware
+const oktaJwtVerifier = new OktaJwtVerifier({
+  issuer: 'https://oktaice02b2016.oktapreview.com',
+  jwksUri: 'https://oktaice02b2016.oktapreview.com/oauth2/v1/keys',
+});
+
+const tokenValidator = async function (req, res, next) {
+  const authHeaders = req.headers.authorization;
+  if (!authHeaders) {
+    return res.sendStatus(401);
+  }
+  const parts = authHeaders.split(' ');
+  const jwt = parts[1];
+  const expectedAud =
+    'https://potential-zebra-qwxg6946v29w5w-3000.app.github.dev/global-token-revocation';
+
+  try {
+    const verifiedJwt = await oktaJwtVerifier.verifyAccessToken(
+      jwt,
+      expectedAud
+    );
+    console.log(verifiedJwt.claims);
+  } catch (err) {
+    console.log(err);
+    return res.sendStatus(401);
+  }
+  
+  next();
+};
+
+
+////Universal Logout endpoint
+app.post('/', universalLogoutRoute, tokenValidator,(req, res) => {
+//   // 204 When the request is successful
+//   const httpStatus = 204;
+
+//   // 400 If the request is malformed
+//   if (!req.body) {
+//     res.status(400);
+//   }
+
+//   // Find the user by email linked to the org id associated with the API key provided
+//   console.log(req.body)
+  
+//   const user = req.body['sub_id']['email']
+//   console.log(user)
+
+//   // 404 User not found
+//   if (!user) {
+//     res.sendStatus(404);
+//   }
+
+//   // End user session
+//   const storedSession = store.sessions;
+//   console.log(storedSession)
+//   const sids = [];
+//   Object.keys(storedSession).forEach((key) => {
+//     const sess = JSON.parse(storedSession[key]);
+//     console.log(sess)
+//     if (sess.passport.user.username === user) {
+//       console.log(sess.passport.user.username)
+//       sids.push(key);
+//     }
+//   });
+//   console.log(sids)
+//   for (const sid of sids) {
+//     store.destroy(sid);
+//     console.log('User session deleted')
+//   }
+  
+//   return res.sendStatus(httpStatus);
+// });
+
+// // catch 404 and forward to error handler
+// app.use(function (req, res, next) {
+//   next(createError(404));
+// });
+
+// // error handler
+// app.use(function (err, req, res, next) {
+//   // set locals, only providing error in development
+//   res.locals.message = err.message + (err.code && ' (' + err.code + ')' || '') +
+//     (req.session.messages && ": " + req.session.messages.join("\n. ") || '');
+//   res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+//   // render the error page
+//   res.status(err.status || 500);
+//   res.render('error');
+});
+
 // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationRequest
 let logout_url, id_token;
 let _base = ORG_URL.slice(-1) == '/' ? ORG_URL.slice(0, -1) : ORG_URL;
@@ -60,8 +151,7 @@ axios
         userInfoURL: userinfo_endpoint,
         clientID: CLIENT_ID,
         clientSecret: CLIENT_SECRET,
-        //callbackURL: 'http://localhost:3000/authorization-code/callback',
-        callbackURL: 'https://potential-zebra-qwxg6946v29w5w-3000.app.github.dev/authorization-code/callback',
+        callbackURL: `https://${codespaceName}-3000.app.github.dev/authorization-code/callback`,
         scope: 'profile offline_access',
       }, (issuer, profile, context, idToken, accessToken, refreshToken, params, done) => {
         console.log(`OIDC response: ${JSON.stringify({
@@ -119,7 +209,6 @@ app.use('/authorization-code/callback',
 );
 
 app.use('/profile', checkLoggedIn, (req, res) => {
-//app.use('/profile', ensureLoggedIn, (req, res) => {
   res.render('profile', { authenticated: req.isAuthenticated(), user: req.user });
 });
 
@@ -128,101 +217,11 @@ app.post('/logout', (req, res, next) => {
     if (err) { return next(err); }
     let params = {
       id_token_hint: id_token,
-      post_logout_redirect_uri: 'http://localhost:3000/'
+      post_logout_redirect_uri: `https://${codespaceName}-3000.app.github.dev`
     }
     res.redirect(logout_url + '?' + qs.stringify(params));
   });
 });
 
-//// Universal Logout Signed Jwt Validation middleware
-const oktaJwtVerifier = new OktaJwtVerifier({
-  issuer: 'https://test-slo-wic-108.oktapreview.com',
-  jwksUri: 'https://test-slo-wic-108.oktapreview.com/oauth2/v1/keys',
-});
-
-const tokenValidator = async function (req, res, next) {
-  const authHeaders = req.headers.authorization;
-  if (!authHeaders) {
-    return res.sendStatus(401);
-  }
-  const parts = authHeaders.split(' ');
-  const jwt = parts[1];
-  const expectedAud =
-    'https://potential-zebra-qwxg6946v29w5w-3000.app.github.dev/global-token-revocation';
-
-  try {
-    const verifiedJwt = await oktaJwtVerifier.verifyAccessToken(
-      jwt,
-      expectedAud
-    );
-    console.log(verifiedJwt.claims);
-  } catch (err) {
-    console.log(err);
-    return res.sendStatus(401);
-  }
-  
-  next();
-};
-
-
-////Universal Logout endpoint
-//tokenValidator,
-app.post('/global-token-revocation', tokenValidator,(req, res) => {
-  // 204 When the request is successful
-  const httpStatus = 204;
-
-  // 400 If the request is malformed
-  if (!req.body) {
-    res.status(400);
-  }
-
-  // Find the user by email linked to the org id associated with the API key provided
-  console.log(req.body)
-  
-  const user = req.body['sub_id']['email']
-  console.log(user)
-
-  // 404 User not found
-  if (!user) {
-    res.sendStatus(404);
-  }
-
-  // End user session
-  const storedSession = store.sessions;
-  console.log(storedSession)
-  const sids = [];
-  Object.keys(storedSession).forEach((key) => {
-    const sess = JSON.parse(storedSession[key]);
-    console.log(sess)
-    if (sess.passport.user.username === user) {
-      console.log(sess.passport.user.username)
-      sids.push(key);
-    }
-  });
-  console.log(sids)
-  for (const sid of sids) {
-    store.destroy(sid);
-    console.log('User session deleted')
-  }
-  
-  return res.sendStatus(httpStatus);
-});
-
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
-  next(createError(404));
-});
-
-// error handler
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message + (err.code && ' (' + err.code + ')' || '') +
-    (req.session.messages && ": " + req.session.messages.join("\n. ") || '');
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
-});
 
 module.exports = app;

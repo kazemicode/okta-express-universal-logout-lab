@@ -1,0 +1,6 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.191.1/containers/javascript-node
+{
+    "name": "Dev Lab: Universal Logout", 
+    "postStartCommand": "npm ci && npm run init"
+}
