@@ -1,7 +1,6 @@
-import {Router} from 'express';
-export const universalLogoutRoute = Router();
-var { store } = require('./sessionStore')
-
+var express = require('express');
+const universalLogoutRoute = express.Router();
+const { store } = require('./sessionStore')
 
 universalLogoutRoute.post('/global-token-revocation', async (req, res) => {
   // 204 When the request is successful
@@ -12,8 +11,10 @@ universalLogoutRoute.post('/global-token-revocation', async (req, res) => {
     res.status(400);
   }
 
-  // Find the user by email linked to the org id associated with the API key provided
+  // Find the user by email 
+  console.log(req.body)
   const user = req.body['sub_id']['email']
+  console.log(user)
 
   // 404 User not found
   if (!user) {
@@ -44,3 +45,5 @@ universalLogoutRoute.use((err,req,res,next) => {
     return res.sendStatus(404)
   }
 })
+
+module.exports = universalLogoutRoute;

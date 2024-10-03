@@ -11,7 +11,7 @@ const axios = require('axios');
 
 //UL requiremnts
 const universalLogoutRoute = require('./universalLogout')
-const store = require('.sessionStore')
+const { store } = require('./sessionStore')
 var OktaJwtVerifier = require('@okta/jwt-verifier');
 const codespaceName = process.env.CODESPACE_NAME;
 
@@ -57,7 +57,7 @@ const tokenValidator = async function (req, res, next) {
   const parts = authHeaders.split(' ');
   const jwt = parts[1];
   const expectedAud =
-    'https://potential-zebra-qwxg6946v29w5w-3000.app.github.dev/global-token-revocation';
+    `https://${codespaceName}-3000.app.github.dev/global-token-revocation`;
 
   try {
     const verifiedJwt = await oktaJwtVerifier.verifyAccessToken(
@@ -75,63 +75,8 @@ const tokenValidator = async function (req, res, next) {
 
 
 ////Universal Logout endpoint
-app.post('/', universalLogoutRoute, tokenValidator,(req, res) => {
-//   // 204 When the request is successful
-//   const httpStatus = 204;
-
-//   // 400 If the request is malformed
-//   if (!req.body) {
-//     res.status(400);
-//   }
-
-//   // Find the user by email linked to the org id associated with the API key provided
-//   console.log(req.body)
-  
-//   const user = req.body['sub_id']['email']
-//   console.log(user)
-
-//   // 404 User not found
-//   if (!user) {
-//     res.sendStatus(404);
-//   }
-
-//   // End user session
-//   const storedSession = store.sessions;
-//   console.log(storedSession)
-//   const sids = [];
-//   Object.keys(storedSession).forEach((key) => {
-//     const sess = JSON.parse(storedSession[key]);
-//     console.log(sess)
-//     if (sess.passport.user.username === user) {
-//       console.log(sess.passport.user.username)
-//       sids.push(key);
-//     }
-//   });
-//   console.log(sids)
-//   for (const sid of sids) {
-//     store.destroy(sid);
-//     console.log('User session deleted')
-//   }
-  
-//   return res.sendStatus(httpStatus);
-// });
-
-// // catch 404 and forward to error handler
-// app.use(function (req, res, next) {
-//   next(createError(404));
-// });
-
-// // error handler
-// app.use(function (err, req, res, next) {
-//   // set locals, only providing error in development
-//   res.locals.message = err.message + (err.code && ' (' + err.code + ')' || '') +
-//     (req.session.messages && ": " + req.session.messages.join("\n. ") || '');
-//   res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-//   // render the error page
-//   res.status(err.status || 500);
-//   res.render('error');
-});
+// , tokenValidator 
+app.post('/', universalLogoutRoute);
 
 // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationRequest
 let logout_url, id_token;
