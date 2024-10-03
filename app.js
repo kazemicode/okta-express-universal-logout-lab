@@ -9,9 +9,9 @@ var qs = require('querystring');
 var { Strategy } = require('passport-openidconnect');
 const axios = require('axios');
 
-//UL requiremnts
-const universalLogoutRoute = require('./universalLogout')
-const { store } = require('./sessionStore')
+//UL requirements
+const universalLogoutRoute = require('./universalLogout');
+const store  = require('./sessionStore');
 var OktaJwtVerifier = require('@okta/jwt-verifier');
 const codespaceName = process.env.CODESPACE_NAME;
 
@@ -75,8 +75,7 @@ const tokenValidator = async function (req, res, next) {
 
 
 ////Universal Logout endpoint
-// , tokenValidator 
-app.post('/', universalLogoutRoute);
+app.use('/', tokenValidator, universalLogoutRoute);
 
 // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationRequest
 let logout_url, id_token;
@@ -124,14 +123,6 @@ passport.deserializeUser((obj, next) => {
 });
 
 
-function ensureLoggedIn(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-
-  res.redirect('/login')
-}
-
 function checkLoggedIn(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
@@ -140,7 +131,6 @@ function checkLoggedIn(req, res, next) {
   res.redirect('/')
 }
 
-// app.use('/', ensureLoggedIn, indexRouter);
 app.use('/', indexRouter);
 
 app.use('/login', passport.authenticate('oidc'));
