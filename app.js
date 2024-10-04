@@ -45,8 +45,8 @@ app.use(passport.session());
 
 //// Universal Logout Signed Jwt Validation middleware
 const oktaJwtVerifier = new OktaJwtVerifier({
-  issuer: 'https://oktaice02b2016.oktapreview.com',
-  jwksUri: 'https://oktaice02b2016.oktapreview.com/oauth2/v1/keys',
+  issuer: 'https://oktaice02a2027.oktapreview.com',
+  jwksUri: 'https://oktaice02a2027.oktapreview.com/oauth2/v1/keys',
 });
 
 const tokenValidator = async function (req, res, next) {
@@ -75,6 +75,7 @@ const tokenValidator = async function (req, res, next) {
 
 
 ////Universal Logout endpoint
+//tokenValidator,
 app.use('/', tokenValidator, universalLogoutRoute);
 
 // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationRequest
